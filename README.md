@@ -1,82 +1,130 @@
-# Cloudflare Tunnel client
+# lwt-cloudflared
 
-Contains the command-line client for Cloudflare Tunnel, a tunneling daemon that proxies traffic from the Cloudflare network to your origins.
-This daemon sits between Cloudflare network and your origin (e.g. a webserver). Cloudflare attracts client requests and sends them to you
-via this daemon, without requiring you to poke holes on your firewall --- your origin can remain as closed as possible.
-Extensive documentation can be found in the [Cloudflare Tunnel section](https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel) of the Cloudflare Docs.
-All usages related with proxying to your origins are available under `cloudflared tunnel help`.
+A customized build of [cloudflare/cloudflared](https://github.com/cloudflare/cloudflared) with **code obfuscation** and **additional features**.
 
-You can also use `cloudflared` to access Tunnel origins (that are protected with `cloudflared tunnel`) for TCP traffic
-at Layer 4 (i.e., not HTTP/websocket), which is relevant for use cases such as SSH, RDP, etc.
-Such usages are available under `cloudflared access help`.
+## Features
 
-You can instead use [WARP client](https://developers.cloudflare.com/warp-client/)
-to access private origins behind Tunnels for Layer 4 traffic without requiring `cloudflared access` commands on the client side.
+### 🔒 Code Obfuscation (via [garble](https://github.com/burrowers/garble))
+- **Symbol obfuscation**: All function names, variable names, and type names are randomized
+- **String literal obfuscation** (`-literals`): All string constants in the binary are encrypted at compile time and decrypted at runtime
+- **Runtime info removal** (`-tiny`): Debug and runtime type information stripped
+- **Random seed** (`-seed=random`): Each build produces a uniquely obfuscated binary
+- **Stripped symbols** (`-ldflags="-s -w"`): Debug symbols and DWARF info removed
 
+### 🌐 Bilingual Help (Chinese / English)
+- Automatically detects system language via `LANG`, `LC_ALL`, `LANGUAGE` environment variables
+- Displays Chinese help text when the system locale is `zh_*`
+- Falls back to English for all other locales
+- Covers: top-level commands, `tunnel` subcommands, `access` subcommands
 
-## Before you get started
+### 🎭 Command Alias
+- **`tun`** → alias for **`tunnel`**
+  - Use `tun` instead of `tunnel` so that `ps aux` output won't reveal you are running a "tunnel" program
+  - Example: `./cfd-linux-amd64-obfuscated tun run --token <TOKEN>`
 
-Before you use Cloudflare Tunnel, you'll need to complete a few steps in the Cloudflare dashboard: you need to add a
-website to your Cloudflare account. Note that today it is possible to use Tunnel without a website (e.g. for private
-routing), but for legacy reasons this requirement is still necessary:
-1. [Add a website to Cloudflare](https://developers.cloudflare.com/fundamentals/manage-domains/add-site/)
-2. [Change your domain nameservers to Cloudflare](https://developers.cloudflare.com/dns/zone-setups/full-setup/setup/)
+## Build Requirements
 
+- **Go** >= 1.26.2
+- **garble** v0.16.0 (`go install mvdan.cc/garble@v0.16.0`)
+- **Linux amd64** (for cross-compilation, set `GOOS=linux GOARCH=amd64`)
+- **RAM**: At least 8GB recommended (the `-literals` flag significantly increases memory usage during compilation)
 
-## Installing `cloudflared`
+## Build Instructions
 
-Downloads are available as standalone binaries, a Docker image, and Debian, RPM, and Homebrew packages. You can also find releases [here](https://github.com/cloudflare/cloudflared/releases) on the `cloudflared` GitHub repository.
+### 1. Install Go 1.26.2+
 
-* You can [install on macOS](https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/downloads/#macos) via Homebrew or by downloading the [latest Darwin amd64 release](https://github.com/cloudflare/cloudflared/releases)
-* Binaries, Debian, and RPM packages for Linux [can be found here](https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/downloads/#linux)
-* A Docker image of `cloudflared` is [available on DockerHub](https://hub.docker.com/r/cloudflare/cloudflared)
-* You can install on Windows machines with the [steps here](https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/downloads/#windows)
-* To build from source, install the required version of go, mentioned in the [Development](#development) section below. Then you can run `make cloudflared`.
+```bash
+# Download and install Go
+wget https://go.dev/dl/go1.26.2.linux-amd64.tar.gz
+tar -C /usr/local -xzf go1.26.2.linux-amd64.tar.gz
+export PATH=/usr/local/go/bin:$PATH
 
-User documentation for Cloudflare Tunnel can be found at https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/
+# If using GOTOOLCHAIN=local, copy Go to a dedicated directory
+cp -r /usr/local/go /usr/local/go126
+```
 
+### 2. Install garble
 
-## Creating Tunnels and routing traffic
+```bash
+export GOPROXY=https://goproxy.cn,direct  # Optional: use Chinese mirror
+go install mvdan.cc/garble@v0.16.0
+```
 
-Once installed, you can authenticate `cloudflared` into your Cloudflare account and begin creating Tunnels to serve traffic to your origins.
+### 3. Clone and Build
 
-* Create a Tunnel with [these instructions](https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/get-started/create-remote-tunnel/)
-* Route traffic to that Tunnel:
-  * Via public [DNS records in Cloudflare](https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/routing-to-tunnel/dns/)
-  * Or via a public hostname guided by a [Cloudflare Load Balancer](https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/routing-to-tunnel/public-load-balancers/)
-  * Or from [WARP client private traffic](https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/private-net/)
+```bash
+# Clone this repository
+git clone https://github.com/lwtdzh/lwt-cloudflared.git
+cd lwt-cloudflared
 
+# Build with full obfuscation
+GOPROXY=https://goproxy.cn,direct \
+GOTOOLCHAIN=local \
+GOROOT=/usr/local/go126 \
+garble -literals -tiny -seed=random build \
+  -o ~/cfd-linux-amd64-obfuscated \
+  -ldflags="-s -w" \
+  ./cmd/cloudflared
+```
 
-## TryCloudflare
+> **Note**: The build with `-literals` takes approximately **45 minutes** and uses ~4GB RAM. Without `-literals`, it takes ~5 minutes.
 
-Want to test Cloudflare Tunnel before adding a website to Cloudflare? You can do so with TryCloudflare using the documentation [available here](https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/do-more-with-tunnels/trycloudflare/).
+### 4. Verify
 
-## Deprecated versions
+```bash
+# Check file type
+file ~/cfd-linux-amd64-obfuscated
+# Expected: ELF 64-bit LSB executable, x86-64, ... stripped
 
-Cloudflare currently supports versions of cloudflared that are **within one year** of the most recent release. Breaking changes unrelated to feature availability may be introduced that will impact versions released more than one year ago. You can read more about upgrading cloudflared in our [developer documentation](https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/downloads/update-cloudflared/).
+# Test English help
+LANG=en_US.UTF-8 ./cfd-linux-amd64-obfuscated --help
 
-For example, as of January 2023 Cloudflare will support cloudflared version 2023.1.1 to cloudflared 2022.1.1.
+# Test Chinese help
+LANG=zh_CN.UTF-8 ./cfd-linux-amd64-obfuscated --help
 
-## Development
+# Test tunnel alias
+./cfd-linux-amd64-obfuscated tun --help
 
-### Requirements
-- [GNU Make](https://www.gnu.org/software/make/)
-- [capnp](https://capnproto.org/install.html)
-- [go >= 1.26](https://go.dev/doc/install)
-- Optional tools:
-  - [capnpc-go](https://pkg.go.dev/zombiezen.com/go/capnproto2/capnpc-go)
-  - [goimports](https://pkg.go.dev/golang.org/x/tools/cmd/goimports)
-  - [golangci-lint](https://github.com/golangci/golangci-lint)
-  - [gomocks](https://pkg.go.dev/go.uber.org/mock)
+# Verify obfuscation (should return very few matches)
+strings ~/cfd-linux-amd64-obfuscated | grep -ic "cloudflare"
+```
 
-### Build
-To build cloudflared locally run `make cloudflared`
+## Quick Usage
 
-### Test
-To locally run the tests run `make test`
+### Temporary Tunnel (No Account Required)
 
-### Linting
-To format the code and keep a good code quality use `make fmt` and `make lint`
+```bash
+# Expose a local service on port 8080
+./cfd-linux-amd64-obfuscated tun --url http://localhost:8080
+```
 
-### Mocks
-After changes on interfaces you might need to regenerate the mocks, so run `make mock`
+This generates a random `*.trycloudflare.com` URL.
+
+### Named Tunnel (With Cloudflare Account)
+
+```bash
+./cfd-linux-amd64-obfuscated tun login
+./cfd-linux-amd64-obfuscated tun create my-tunnel
+./cfd-linux-amd64-obfuscated tun route dns my-tunnel my-tunnel.example.com
+./cfd-linux-amd64-obfuscated tun run --url http://localhost:8080 my-tunnel
+```
+
+### Run with Token (From Dashboard)
+
+```bash
+./cfd-linux-amd64-obfuscated tun run --token <YOUR_TOKEN>
+```
+
+## Obfuscation Comparison
+
+| Metric | Original cloudflared | This build |
+|--------|---------------------|------------|
+| `strings \| grep -ic cloudflare` | 100+ matches | **~4 matches** |
+| Function/variable names | Readable | **Randomized** |
+| String literals | Plain text | **Encrypted** |
+| Debug symbols | Present | **Stripped** |
+| Binary size | ~25MB | **~80MB** |
+
+## License
+
+This project is based on [cloudflare/cloudflared](https://github.com/cloudflare/cloudflared), licensed under the Apache License 2.0.

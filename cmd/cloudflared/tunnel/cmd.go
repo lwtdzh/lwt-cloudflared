@@ -23,6 +23,7 @@ import (
 
 	"github.com/cloudflare/cloudflared/cfapi"
 	"github.com/cloudflare/cloudflared/cmd/cloudflared/cliutil"
+	"github.com/cloudflare/cloudflared/i18n"
 	cfdflags "github.com/cloudflare/cloudflared/cmd/cloudflared/flags"
 	"github.com/cloudflare/cloudflared/cmd/cloudflared/proxydns"
 	"github.com/cloudflare/cloudflared/cmd/cloudflared/updater"
@@ -190,11 +191,12 @@ func Commands() []*cli.Command {
 func buildTunnelCommand(subcommands []*cli.Command) *cli.Command {
 	return &cli.Command{
 		Name:      "tunnel",
+		Aliases:   []string{"tun"},
 		Action:    cliutil.ConfiguredAction(TunnelCommand),
 		Category:  "Tunnel",
-		Usage:     "Use Cloudflare Tunnel to expose private services to the Internet or to Cloudflare connected private users.",
+		Usage:     i18n.T("Use Cloudflare Tunnel to expose private services to the Internet or to Cloudflare connected private users.", "使用 Cloudflare Tunnel 将私有服务暴露到互联网或 Cloudflare 连接的私有用户。"),
 		ArgsUsage: " ",
-		Description: `    Cloudflare Tunnel allows to expose private services without opening any ingress port on this machine. It can expose:
+		Description: i18n.T(`    Cloudflare Tunnel allows to expose private services without opening any ingress port on this machine. It can expose:
   A) Locally reachable HTTP-based private services to the Internet on DNS with Cloudflare as authority (which you can
 then protect with Cloudflare Access).
   B) Locally reachable TCP/UDP-based private services to Cloudflare connected private users in the same account, e.g.,
@@ -220,6 +222,31 @@ For exposing local TCP/UDP services by IP to your privately connected users, che
 	$ cloudflared tunnel route ip --help
 
 See https://developers.cloudflare.com/cloudflare-one/connections/connect-apps/install-and-setup/tunnel-guide/ for more info.`,
+		`    Cloudflare Tunnel 允许在不打开此机器任何入站端口的情况下暴露私有服务。它可以暴露：
+  A) 本地可达的基于 HTTP 的私有服务，通过 Cloudflare 作为 DNS 权威服务器暴露到互联网
+（然后您可以使用 Cloudflare Access 进行保护）。
+  B) 本地可达的基于 TCP/UDP 的私有服务，暴露给同一账户中 Cloudflare 连接的私有用户，
+例如加入了 Zero Trust WARP 客户端的用户。
+
+您可以通过 one.dash.cloudflare.com 管理您的 Tunnel。
+
+或者，您可以通过命令行管理 Tunnel。首先获取证书：
+
+	$ cloudflared tunnel login
+
+安装证书后，您可以开始使用 Tunnel：
+
+	$ cloudflared tunnel create my-first-tunnel
+	$ cloudflared tunnel route dns my-first-tunnel my-first-tunnel.mydomain.com
+	$ cloudflared tunnel run --hello-world my-first-tunnel
+
+现在您可以访问 my-first-tunnel.mydomain.com，并由本地 cloudflared 进程提供示例页面。
+
+要通过 IP 将本地 TCP/UDP 服务暴露给私有连接的用户，请查看：
+
+	$ cloudflared tunnel route ip --help
+
+详见 https://developers.cloudflare.com/cloudflare-one/connections/connect-apps/install-and-setup/tunnel-guide/`),
 		Subcommands: subcommands,
 		Flags:       tunnelFlags(false),
 	}

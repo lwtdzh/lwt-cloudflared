@@ -19,6 +19,7 @@ import (
 
 	"github.com/cloudflare/cloudflared/carrier"
 	"github.com/cloudflare/cloudflared/cmd/cloudflared/cliutil"
+	"github.com/cloudflare/cloudflared/i18n"
 	cfdflags "github.com/cloudflare/cloudflared/cmd/cloudflared/flags"
 	"github.com/cloudflare/cloudflared/logger"
 	"github.com/cloudflare/cloudflared/sshgen"
@@ -79,26 +80,34 @@ func Commands() []*cli.Command {
 			Name:     "access",
 			Aliases:  []string{"forward"},
 			Category: "Access",
-			Usage:    "access <subcommand>",
+			Usage:    i18n.T("access <subcommand>", "access <子命令>"),
 			Flags: []cli.Flag{&cli.BoolFlag{
 				Name:  fedrampFlag,
 				Usage: "use when performing operations in fedramp account",
 			}},
-			Description: `Cloudflare Access protects internal resources by securing, authenticating and monitoring access
+			Description: i18n.T(`Cloudflare Access protects internal resources by securing, authenticating and monitoring access
 			per-user and by application. With Cloudflare Access, only authenticated users with the required permissions are
 			able to reach sensitive resources. The commands provided here allow you to interact with Access protected
 			applications from the command line.`,
+			`Cloudflare Access 通过按用户和按应用程序保护、认证和监控访问来保护内部资源。
+			使用 Cloudflare Access，只有具有所需权限的已认证用户才能访问敏感资源。
+			此处提供的命令允许您从命令行与 Access 保护的应用程序进行交互。`),
 			Subcommands: []*cli.Command{
 				{
 					Name:      "login",
 					Action:    cliutil.Action(login),
-					Usage:     "login <url of access application>",
+					Usage:     i18n.T("login <url of access application>", "login <Access 应用程序的 URL>"),
 					ArgsUsage: "url of Access application",
-					Description: `The login subcommand initiates an authentication flow with your identity provider.
+					Description: i18n.T(`The login subcommand initiates an authentication flow with your identity provider.
 					The subcommand will launch a browser. For headless systems, a url is provided.
 					Once authenticated with your identity provider, the login command will generate a JSON Web Token (JWT)
 					scoped to your identity, the application you intend to reach, and valid for a session duration set by your
 					administrator. cloudflared stores the token in local storage.`,
+					`login 子命令会启动与您的身份提供者的认证流程。
+					该子命令将启动浏览器。对于无头系统，将提供一个 URL。
+					一旦通过身份提供者认证，login 命令将生成一个 JSON Web Token (JWT)，
+					范围限定为您的身份、您要访问的应用程序，并在管理员设置的会话时间内有效。
+					cloudflared 将令牌存储在本地存储中。`),
 					Flags: []cli.Flag{
 						&cli.BoolFlag{
 							Name:    loginQuietFlag,
@@ -122,8 +131,9 @@ func Commands() []*cli.Command {
 					Name:   "curl",
 					Action: cliutil.Action(curl),
 					Usage:  "curl [--allow-request, -ar] <url> [<curl args>...]",
-					Description: `The curl subcommand wraps curl and automatically injects the JWT into a cf-access-token
+					Description: i18n.T(`The curl subcommand wraps curl and automatically injects the JWT into a cf-access-token
 					header when using curl to reach an application behind Access.`,
+					`curl 子命令封装了 curl 并自动将 JWT 注入到 cf-access-token 请求头中。`),
 					ArgsUsage:       "allow-request will allow the curl request to continue even if the jwt is not present.",
 					SkipFlagParsing: true,
 				},
@@ -132,7 +142,7 @@ func Commands() []*cli.Command {
 					Action:      cliutil.Action(generateToken),
 					Usage:       "token <url of access application>",
 					ArgsUsage:   "url of Access application",
-					Description: `The token subcommand produces a JWT which can be used to authenticate requests.`,
+					Description: i18n.T(`The token subcommand produces a JWT which can be used to authenticate requests.`, `token 子命令生成一个可用于认证请求的 JWT。`),
 					Flags: []cli.Flag{
 						&cli.StringFlag{
 							Name: appURLFlag,
@@ -145,7 +155,7 @@ func Commands() []*cli.Command {
 					Aliases:     []string{"rdp", "ssh", "smb"},
 					Usage:       "",
 					ArgsUsage:   "",
-					Description: `The tcp subcommand sends data over a proxy to the Cloudflare edge.`,
+					Description: i18n.T(`The tcp subcommand sends data over a proxy to the Cloudflare edge.`, `tcp 子命令通过代理将数据发送到 Cloudflare 边缘。`),
 					Flags: []cli.Flag{
 						&cli.StringFlag{
 							Name:    sshHostnameFlag,

@@ -11,6 +11,7 @@ import (
 	"go.uber.org/automaxprocs/maxprocs"
 
 	"github.com/cloudflare/cloudflared/cmd/cloudflared/access"
+	"github.com/cloudflare/cloudflared/i18n"
 	"github.com/cloudflare/cloudflared/cmd/cloudflared/cliutil"
 	cfdflags "github.com/cloudflare/cloudflared/cmd/cloudflared/flags"
 	"github.com/cloudflare/cloudflared/cmd/cloudflared/management"
@@ -67,8 +68,8 @@ func main() {
 
 	app := &cli.App{}
 	app.Name = "cloudflared"
-	app.Usage = "Cloudflare's command-line tool and agent"
-	app.UsageText = "cloudflared [global options] [command] [command options]"
+	app.Usage = i18n.T("Cloudflare's command-line tool and agent", "Cloudflare 命令行工具和代理")
+	app.UsageText = i18n.T("cloudflared [global options] [command] [command options]", "cloudflared [全局选项] [命令] [命令选项]")
 	app.Copyright = fmt.Sprintf(
 		`(c) %d Cloudflare Inc.
    Your installation of cloudflared software constitutes a symbol of your signature indicating that you accept
@@ -77,11 +78,16 @@ func main() {
 		time.Now().Year(),
 	)
 	app.Version = fmt.Sprintf("%s (built %s%s)", Version, BuildTime, bInfo.GetBuildTypeMsg())
-	app.Description = `cloudflared connects your machine or user identity to Cloudflare's global network.
+	app.Description = i18n.T(`cloudflared connects your machine or user identity to Cloudflare's global network.
 	You can use it to authenticate a session to reach an API behind Access, route web traffic to this machine,
 	and configure access control.
 
-	See https://developers.cloudflare.com/cloudflare-one/connections/connect-apps for more in-depth documentation.`
+	See https://developers.cloudflare.com/cloudflare-one/connections/connect-apps for more in-depth documentation.`,
+	`cloudflared 将您的机器或用户身份连接到 Cloudflare 的全球网络。
+	您可以使用它来认证会话以访问 Access 后面的 API，将网络流量路由到此机器，
+	以及配置访问控制。
+
+	详细文档请参阅 https://developers.cloudflare.com/cloudflare-one/connections/connect-apps`)
 	app.Flags = flags()
 	app.Action = action(graceShutdownC)
 	app.Commands = commands(cli.ShowVersion)
@@ -101,7 +107,7 @@ func commands(version func(c *cli.Context)) []*cli.Command {
 		{
 			Name:   "update",
 			Action: cliutil.ConfiguredAction(updater.Update),
-			Usage:  "Update the agent if a new version exists",
+			Usage:  i18n.T("Update the agent if a new version exists", "如果存在新版本则更新代理"),
 			Flags: []cli.Flag{
 				&cli.BoolFlag{
 					Name:  "beta",
@@ -123,11 +129,16 @@ func commands(version func(c *cli.Context)) []*cli.Command {
 					Hidden: false,
 				},
 			},
-			Description: `Looks for a new version on the official download server.
+			Description: i18n.T(`Looks for a new version on the official download server.
 If a new version exists, updates the agent binary and quits.
 Otherwise, does nothing.
 
 To determine if an update happened in a script, check for error code 11.`,
+			`在官方下载服务器上查找新版本。
+如果存在新版本，则更新代理二进制文件并退出。
+否则，不执行任何操作。
+
+要在脚本中判断是否发生了更新，请检查错误代码 11。`),
 		},
 		{
 			Name: "version",
@@ -139,8 +150,8 @@ To determine if an update happened in a script, check for error code 11.`,
 				version(c)
 				return nil
 			},
-			Usage:       versionText,
-			Description: versionText,
+			Usage:       i18n.T(versionText, "打印版本信息"),
+			Description: i18n.T(versionText, "打印版本信息"),
 			Flags: []cli.Flag{
 				&cli.BoolFlag{
 					Name:    "short",
