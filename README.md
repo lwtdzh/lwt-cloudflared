@@ -86,7 +86,7 @@ cd lwt-cloudflared
 #### Build for current platform (native)
 
 ```bash
-garble -literals -tiny -seed=random build \
+CGO_ENABLED=0 garble -literals -tiny -seed=random build \
   -o cfd-obfuscated \
   -ldflags="-s -w" \
   ./cmd/cloudflared
@@ -98,23 +98,23 @@ Set `GOOS` and `GOARCH` to target any platform:
 
 ```bash
 # Linux amd64
-GOOS=linux GOARCH=amd64 garble -literals -tiny -seed=random build \
+GOOS=linux GOARCH=amd64 CGO_ENABLED=0 garble -literals -tiny -seed=random build \
   -o cfd-linux-amd64 -ldflags="-s -w" ./cmd/cloudflared
 
 # Linux arm64
-GOOS=linux GOARCH=arm64 garble -literals -tiny -seed=random build \
+GOOS=linux GOARCH=arm64 CGO_ENABLED=0 garble -literals -tiny -seed=random build \
   -o cfd-linux-arm64 -ldflags="-s -w" ./cmd/cloudflared
 
 # macOS Intel
-GOOS=darwin GOARCH=amd64 garble -literals -tiny -seed=random build \
+GOOS=darwin GOARCH=amd64 CGO_ENABLED=0 garble -literals -tiny -seed=random build \
   -o cfd-darwin-amd64 -ldflags="-s -w" ./cmd/cloudflared
 
 # macOS Apple Silicon (M1/M2/M3/M4)
-GOOS=darwin GOARCH=arm64 garble -literals -tiny -seed=random build \
+GOOS=darwin GOARCH=arm64 CGO_ENABLED=0 garble -literals -tiny -seed=random build \
   -o cfd-darwin-arm64 -ldflags="-s -w" ./cmd/cloudflared
 
 # Windows amd64
-GOOS=windows GOARCH=amd64 garble -literals -tiny -seed=random build \
+GOOS=windows GOARCH=amd64 CGO_ENABLED=0 garble -literals -tiny -seed=random build \
   -o cfd-windows-amd64.exe -ldflags="-s -w" ./cmd/cloudflared
 ```
 
