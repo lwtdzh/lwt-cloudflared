@@ -49,39 +49,84 @@ A customized build of [cloudflare/cloudflared](https://github.com/cloudflare/clo
 
 ### 1. Install Go 1.26.2+
 
+Download Go from [https://go.dev/dl/](https://go.dev/dl/) for your platform:
+
+| Platform | Download |
+|----------|----------|
+| **Linux amd64** | `go1.26.2.linux-amd64.tar.gz` |
+| **Linux arm64** | `go1.26.2.linux-arm64.tar.gz` |
+| **macOS Intel** | `go1.26.2.darwin-amd64.tar.gz` |
+| **macOS Apple Silicon** | `go1.26.2.darwin-arm64.tar.gz` |
+| **Windows amd64** | `go1.26.2.windows-amd64.zip` |
+
 ```bash
-# Download and install Go
-wget https://go.dev/dl/go1.26.2.linux-amd64.tar.gz
-tar -C /usr/local -xzf go1.26.2.linux-amd64.tar.gz
+# Linux / macOS example:
+wget https://go.dev/dl/go1.26.2.<OS>-<ARCH>.tar.gz
+tar -C /usr/local -xzf go1.26.2.<OS>-<ARCH>.tar.gz
 export PATH=/usr/local/go/bin:$PATH
 
-# If using GOTOOLCHAIN=local, copy Go to a dedicated directory
-cp -r /usr/local/go /usr/local/go126
+# macOS via Homebrew:
+brew install go
 ```
 
 ### 2. Install garble
 
 ```bash
-export GOPROXY=https://goproxy.cn,direct  # Optional: use Chinese mirror
+export GOPROXY=https://goproxy.cn,direct  # Optional: use Chinese mirror for faster download
 go install mvdan.cc/garble@v0.16.0
 ```
 
 ### 3. Clone and Build
 
 ```bash
-# Clone this repository
 git clone https://github.com/lwtdzh/lwt-cloudflared.git
 cd lwt-cloudflared
+```
 
-# Build with full obfuscation
-GOPROXY=https://goproxy.cn,direct \
-GOTOOLCHAIN=local \
-GOROOT=/usr/local/go126 \
+#### Build for current platform (native)
+
+```bash
 garble -literals -tiny -seed=random build \
-  -o ~/cfd-linux-amd64-obfuscated \
+  -o cfd-obfuscated \
   -ldflags="-s -w" \
   ./cmd/cloudflared
 ```
+
+#### Cross-compile for other platforms
+
+Set `GOOS` and `GOARCH` to target any platform:
+
+```bash
+# Linux amd64
+GOOS=linux GOARCH=amd64 garble -literals -tiny -seed=random build \
+  -o cfd-linux-amd64 -ldflags="-s -w" ./cmd/cloudflared
+
+# Linux arm64
+GOOS=linux GOARCH=arm64 garble -literals -tiny -seed=random build \
+  -o cfd-linux-arm64 -ldflags="-s -w" ./cmd/cloudflared
+
+# macOS Intel
+GOOS=darwin GOARCH=amd64 garble -literals -tiny -seed=random build \
+  -o cfd-darwin-amd64 -ldflags="-s -w" ./cmd/cloudflared
+
+# macOS Apple Silicon (M1/M2/M3/M4)
+GOOS=darwin GOARCH=arm64 garble -literals -tiny -seed=random build \
+  -o cfd-darwin-arm64 -ldflags="-s -w" ./cmd/cloudflared
+
+# Windows amd64
+GOOS=windows GOARCH=amd64 garble -literals -tiny -seed=random build \
+  -o cfd-windows-amd64.exe -ldflags="-s -w" ./cmd/cloudflared
+```
+
+#### Supported `GOOS`/`GOARCH` combinations
+
+| GOOS | GOARCH | Output |
+|------|--------|--------|
+| `linux` | `amd64` | ELF x86-64 binary |
+| `linux` | `arm64` | ELF ARM64 binary |
+| `darwin` | `amd64` | Mach-O x86-64 binary (Intel Mac) |
+| `darwin` | `arm64` | Mach-O ARM64 binary (Apple Silicon) |
+| `windows` | `amd64` | PE32+ x86-64 `.exe` |
 
 > **Note**: The build with `-literals` takes approximately **45 minutes** and uses ~4GB RAM. Without `-literals`, it takes ~5 minutes.
 
