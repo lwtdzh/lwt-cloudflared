@@ -104,6 +104,7 @@ func main() {
 
 func commands(version func(c *cli.Context)) []*cli.Command {
 	cmds := []*cli.Command{
+		buildTempCommand(),
 		{
 			Name:   "update",
 			Action: cliutil.ConfiguredAction(updater.Update),

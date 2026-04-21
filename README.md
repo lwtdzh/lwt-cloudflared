@@ -22,6 +22,22 @@ A customized build of [cloudflare/cloudflared](https://github.com/cloudflare/clo
   - Use `tun` instead of `tunnel` so that `ps aux` output won't reveal you are running a "tunnel" program
   - Example: `./cfd-linux-amd64-obfuscated tun run --token <TOKEN>`
 
+### ⚡ Quick Temporary Tunnel (`temp` command)
+- One-line shortcut to create a temporary tunnel with simple syntax
+- Format: `./cfd-linux-amd64-obfuscated temp <addr> <protocol> <port>`
+- **`local`** is a special alias for **`localhost`**
+- Examples:
+  ```bash
+  # Expose local SSH (tcp://localhost:22)
+  ./cfd-linux-amd64-obfuscated temp local tcp 22
+
+  # Expose local HTTP server (http://localhost:8080)
+  ./cfd-linux-amd64-obfuscated temp local http 8080
+
+  # Expose a remote service (https://1.2.3.4:443)
+  ./cfd-linux-amd64-obfuscated temp 1.2.3.4 https 443
+  ```
+
 ## Build Requirements
 
 - **Go** >= 1.26.2
@@ -91,6 +107,19 @@ strings ~/cfd-linux-amd64-obfuscated | grep -ic "cloudflare"
 
 ## Quick Usage
 
+### ⚡ Fastest Way: `temp` Command
+
+```bash
+# Expose local SSH
+./cfd-linux-amd64-obfuscated temp local tcp 22
+
+# Expose local HTTP server
+./cfd-linux-amd64-obfuscated temp local http 8080
+
+# Expose a remote service
+./cfd-linux-amd64-obfuscated temp 1.2.3.4 https 443
+```
+
 ### Temporary Tunnel (No Account Required)
 
 ```bash
@@ -98,7 +127,7 @@ strings ~/cfd-linux-amd64-obfuscated | grep -ic "cloudflare"
 ./cfd-linux-amd64-obfuscated tun --url http://localhost:8080
 ```
 
-This generates a random `*.trycloudflare.com` URL.
+Both methods generate a random `*.trycloudflare.com` URL.
 
 ### Named Tunnel (With Cloudflare Account)
 
