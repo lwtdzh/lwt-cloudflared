@@ -67,6 +67,7 @@ func buildTempCommand() *cli.Command {
 			if err := c.Set("url", tunnelURL); err != nil {
 				return fmt.Errorf("failed to set tunnel URL: %w", err)
 			}
+			fmt.Println("DEBUG temp.go: proxy=" + c.String("proxy"))
 			return tunnel.TunnelCommand(c)
 		},
 	}

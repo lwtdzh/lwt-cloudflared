@@ -38,6 +38,26 @@ A customized build of [cloudflare/cloudflared](https://github.com/cloudflare/clo
   ./cfd-linux-amd64-obfuscated temp 1.2.3.4 https 443
   ```
 
+### 🔒 Outbound Proxy Support (`--proxy` / `-x`)
+- Route all cloudflared-to-Cloudflare-Edge connections through a SOCKS5 or HTTP proxy
+- **Requires `--protocol http2`** (SOCKS5/HTTP proxies only support TCP, not UDP/QUIC)
+- Format: `socks5://host:port`, `socks5://user:password@host:port`, or `http://host:port`
+- Examples:
+  ```bash
+  # Use SOCKS5 proxy
+  ./cfd-linux-amd64-obfuscated temp local http 8080 --proxy socks5://127.0.0.1:1080 --protocol http2
+
+  # Use SOCKS5 proxy with authentication
+  ./cfd-linux-amd64-obfuscated temp local tcp 22 --proxy socks5://user:pass@127.0.0.1:1080 --protocol http2
+
+  # Use HTTP proxy
+  ./cfd-linux-amd64-obfuscated temp local http 8080 --proxy http://proxy.example.com:8080 --protocol http2
+
+  # With named tunnel
+  ./cfd-linux-amd64-obfuscated tunnel run --token <TOKEN> --proxy socks5://127.0.0.1:1080 --protocol http2
+  ```
+- **Error handling**: If `--proxy` is used without `--protocol http2`, the program will exit with an error message
+
 ## Build Requirements
 
 - **Go** >= 1.26.2

@@ -83,7 +83,13 @@ func RunQuickTunnel(sc *subcommandContext) error {
 		sc.log.Info().Msg(line)
 	}
 
-	if !sc.c.IsSet(flags.Protocol) {
+	// When --proxy is set, force http2 (SOCKS5/HTTP proxies only support TCP, not UDP/QUIC)
+	proxyVal := sc.c.String("proxy")
+	sc.log.Info().Msgf("DEBUG quick_tunnel: proxy flag value=%q, isSet=%v", proxyVal, sc.c.IsSet("proxy"))
+	if proxyVal != "" {
+		sc.log.Info().Msg("Proxy detected, forcing protocol to http2")
+		_ = sc.c.Set(flags.Protocol, "http2")
+	} else if !sc.c.IsSet(flags.Protocol) {
 		_ = sc.c.Set(flags.Protocol, "quic")
 	}
 

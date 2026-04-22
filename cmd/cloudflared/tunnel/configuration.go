@@ -150,6 +150,15 @@ func prepareTunnelConfig(
 		transportProtocol = connection.QUIC.String()
 	}
 
+	// Validate proxy configuration
+	proxyURL := c.String("proxy")
+	if proxyURL != "" {
+		if transportProtocol != "http2" {
+			return nil, nil, fmt.Errorf("--proxy requires --protocol http2. SOCKS5/HTTP proxies only support TCP connections, but the current protocol (%s) may use UDP. Please add: --protocol http2", transportProtocol)
+		}
+		log.Info().Msgf("Using outbound proxy: %s", proxyURL)
+	}
+
 	cfg := config.GetConfiguration()
 	ingressRules, err := ingress.ParseIngressFromConfigAndCLI(cfg, c, log)
 	if err != nil {
@@ -263,6 +272,7 @@ func prepareTunnelConfig(
 		QUICStreamLevelFlowControlLimit:     c.Uint64(flags.QuicStreamLevelFlowControlLimit),
 		OriginDNSService:                    dnsService,
 		OriginDialerService:                 originDialerService,
+		ProxyURL:                            proxyURL,
 	}
 	icmpRouter, err := newICMPRouter(c, log)
 	if err != nil {

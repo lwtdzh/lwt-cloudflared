@@ -150,6 +150,12 @@ var (
 		EnvVars: []string{"TUNNEL_TRANSPORT_PROTOCOL"},
 		Hidden:  true,
 	})
+	proxyFlag = &cli.StringFlag{
+		Name:    "proxy",
+		Aliases: []string{"x"},
+		Usage:   "Use a proxy for outbound connections to Cloudflare edge. Format: socks5://host:port or http://host:port. Requires --protocol http2.",
+		EnvVars: []string{"TUNNEL_PROXY"},
+	}
 	postQuantumFlag = altsrc.NewBoolFlag(&cli.BoolFlag{
 		Name:    flags.PostQuantum,
 		Usage:   "When given creates an experimental post-quantum secure tunnel",
@@ -717,6 +723,7 @@ func buildRunCommand() *cli.Command {
 		credentialsContentsFlag,
 		postQuantumFlag,
 		selectProtocolFlag,
+		proxyFlag,
 		featuresFlag,
 		tunnelTokenFlag,
 		tunnelTokenFileFlag,

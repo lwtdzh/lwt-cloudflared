@@ -873,6 +873,7 @@ func tunnelFlags(shouldHide bool) []cli.Flag {
 			Value:   true,
 		}),
 		selectProtocolFlag,
+		proxyFlag,
 		overwriteDNSFlag,
 	}...)
 

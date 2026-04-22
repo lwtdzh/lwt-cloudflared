@@ -74,6 +74,8 @@ type TunnelConfig struct {
 	DisableQUICPathMTUDiscovery         bool
 	QUICConnectionLevelFlowControlLimit uint64
 	QUICStreamLevelFlowControlLimit     uint64
+
+	ProxyURL string // Outbound proxy URL for edge connections (socks5:// or http://)
 }
 
 func (c *TunnelConfig) connectionOptions(originLocalAddr string, previousAttempts uint8) *client.ConnectionOptionsSnapshot {
@@ -466,7 +468,7 @@ func (e *EdgeTunnelServer) serveConnection(
 			connIndex)
 
 	case connection.HTTP2:
-		edgeConn, err := edgediscovery.DialEdge(ctx, dialTimeout, e.config.EdgeTLSConfigs[protocol], addr.TCP, e.edgeBindAddr)
+		edgeConn, err := edgediscovery.DialEdge(ctx, dialTimeout, e.config.EdgeTLSConfigs[protocol], addr.TCP, e.edgeBindAddr, e.config.ProxyURL)
 		if err != nil {
 			connLog.ConnAwareLogger().Err(err).Msg("Unable to establish connection with Cloudflare edge")
 			return err, true
