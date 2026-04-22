@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -24,14 +25,35 @@ const disclaimer = "Thank you for trying Cloudflare Tunnel. Doing so, without a 
 // service is open-source and could be used by anyone.
 func RunQuickTunnel(sc *subcommandContext) error {
 	sc.log.Info().Msg(disclaimer)
+
+	// When --proxy is set, force http2 BEFORE any network operations
+	// SOCKS5/HTTP proxies only support TCP, not UDP/QUIC
+	proxyVal := sc.c.String("proxy")
+	if proxyVal != "" {
+		sc.log.Info().Msg("Proxy detected, forcing protocol to http2 before network operations")
+		_ = sc.c.Set(flags.Protocol, "http2")
+	}
+
 	sc.log.Info().Msg("Requesting new quick Tunnel on trycloudflare.com...")
 
+	transport := &http.Transport{
+		TLSHandshakeTimeout:   httpTimeout,
+		ResponseHeaderTimeout: httpTimeout,
+	}
+
+	// Route API requests through proxy if configured
+	if proxyVal != "" {
+		proxyURL, err := url.Parse(proxyVal)
+		if err != nil {
+			return fmt.Errorf("invalid proxy URL %q: %w", proxyVal, err)
+		}
+		transport.Proxy = http.ProxyURL(proxyURL)
+		sc.log.Info().Msgf("Quick tunnel API request will use proxy: %s", proxyVal)
+	}
+
 	client := http.Client{
-		Transport: &http.Transport{
-			TLSHandshakeTimeout:   httpTimeout,
-			ResponseHeaderTimeout: httpTimeout,
-		},
-		Timeout: httpTimeout,
+		Transport: transport,
+		Timeout:   httpTimeout,
 	}
 
 	req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("%s/tunnel", sc.c.String("quick-service")), nil)
@@ -83,13 +105,8 @@ func RunQuickTunnel(sc *subcommandContext) error {
 		sc.log.Info().Msg(line)
 	}
 
-	// When --proxy is set, force http2 (SOCKS5/HTTP proxies only support TCP, not UDP/QUIC)
-	proxyVal := sc.c.String("proxy")
-	sc.log.Info().Msgf("DEBUG quick_tunnel: proxy flag value=%q, isSet=%v", proxyVal, sc.c.IsSet("proxy"))
-	if proxyVal != "" {
-		sc.log.Info().Msg("Proxy detected, forcing protocol to http2")
-		_ = sc.c.Set(flags.Protocol, "http2")
-	} else if !sc.c.IsSet(flags.Protocol) {
+	// For non-proxy mode, default to quic if protocol not explicitly set
+	if proxyVal == "" && !sc.c.IsSet(flags.Protocol) {
 		_ = sc.c.Set(flags.Protocol, "quic")
 	}
 
