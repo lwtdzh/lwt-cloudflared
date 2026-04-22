@@ -30,6 +30,23 @@ func RunQuickTunnel(sc *subcommandContext) error {
 	// SOCKS5/HTTP proxies only support TCP, not UDP/QUIC
 	proxyVal := sc.c.String("proxy")
 	if proxyVal != "" {
+		// Validate proxy URL format
+		proxyCheck, parseErr := url.Parse(proxyVal)
+		if parseErr != nil {
+			sc.log.Error().Msgf("Invalid proxy URL %q: %v\nCorrect format: socks5://[user:password@]host:port", proxyVal, parseErr)
+			return fmt.Errorf("invalid proxy URL %q: %w\nCorrect format: socks5://[user:password@]host:port", proxyVal, parseErr)
+		}
+		// Check for common mistake: socks5://host:port:password (extra colon)
+		if strings.Count(proxyCheck.Host, ":") > 1 {
+			errMsg := fmt.Sprintf("Invalid proxy URL %q: too many colons in host:port\n"+
+				"  Correct formats:\n"+
+				"    socks5://host:port\n"+
+				"    socks5://user:password@host:port\n"+
+				"    http://host:port\n"+
+				"    http://user:password@host:port", proxyVal)
+			sc.log.Error().Msg(errMsg)
+			return fmt.Errorf("%s", errMsg)
+		}
 		sc.log.Info().Msg("Proxy detected, forcing protocol to http2 before network operations")
 		_ = sc.c.Set(flags.Protocol, "http2")
 	}
@@ -64,6 +81,10 @@ func RunQuickTunnel(sc *subcommandContext) error {
 	req.Header.Add("User-Agent", buildInfo.UserAgent())
 	resp, err := client.Do(req)
 	if err != nil {
+		if proxyVal != "" {
+			sc.log.Error().Err(err).Msgf("Failed to request quick Tunnel via proxy %s (check that the proxy is running and accessible)", proxyVal)
+			return fmt.Errorf("failed to request quick Tunnel via proxy %s: %w (check that the proxy is running and accessible)", proxyVal, err)
+		}
 		return errors.Wrap(err, "failed to request quick Tunnel")
 	}
 	defer resp.Body.Close()

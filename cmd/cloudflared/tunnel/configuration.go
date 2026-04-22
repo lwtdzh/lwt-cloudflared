@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"net/url"
 	"net"
 	"net/netip"
 	"os"
@@ -153,6 +154,14 @@ func prepareTunnelConfig(
 	// Validate proxy configuration
 	proxyURL := c.String("proxy")
 	if proxyURL != "" {
+		// Validate proxy URL format
+		parsedProxy, parseErr := url.Parse(proxyURL)
+		if parseErr != nil {
+			return nil, nil, fmt.Errorf("invalid proxy URL %q: %w", proxyURL, parseErr)
+		}
+		if strings.Count(parsedProxy.Host, ":") > 1 {
+			return nil, nil, fmt.Errorf("invalid proxy URL %q: too many colons in host:port. Correct format: socks5://[user:password@]host:port", proxyURL)
+		}
 		if transportProtocol != "http2" {
 			return nil, nil, fmt.Errorf("--proxy requires --protocol http2. SOCKS5/HTTP proxies only support TCP connections, but the current protocol (%s) may use UDP. Please add: --protocol http2", transportProtocol)
 		}

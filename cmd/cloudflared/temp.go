@@ -22,6 +22,9 @@ func buildTempCommand() *cli.Command {
 				"     cloudflared temp local tcp 22      => tcp://localhost:22\n"+
 				"     cloudflared temp local http 8080   => http://localhost:8080\n"+
 				"     cloudflared temp 1.2.3.4 https 443 => https://1.2.3.4:443\n\n"+
+				"   With proxy:\n"+
+				"     cloudflared temp local tcp 22 --proxy socks5://127.0.0.1:1080\n"+
+				"     cloudflared temp local tcp 22 -x socks5://user:pass@127.0.0.1:1080\n\n"+
 				"   'local' is an alias for 'localhost'",
 			"cloudflared temp <\u5730\u5740> <\u534f\u8bae> <\u7aef\u53e3>\n\n"+
 				"   \u793a\u4f8b:\n"+
@@ -40,6 +43,11 @@ func buildTempCommand() *cli.Command {
 				"   'port' \u662f\u672c\u5730\u670d\u52a1\u7684\u7aef\u53e3\u53f7\u3002"),
 		Flags: tunnel.Flags(),
 		Action: func(c *cli.Context) error {
+			// urfave/cli/v2 stops parsing flags after the first positional arg.
+			// Manually scan os.Args for --proxy/-x and --protocol/-p that may
+			// appear after positional args (e.g., "temp local tcp 2222 -x ...").
+			manualFlagScan(c)
+
 			if c.NArg() < 3 {
 				fmt.Fprintln(os.Stderr, i18n.T(
 					"Usage: cloudflared temp <addr> <protocol> <port>",
@@ -70,5 +78,35 @@ func buildTempCommand() *cli.Command {
 			fmt.Println("DEBUG temp.go: proxy=" + c.String("proxy"))
 			return tunnel.TunnelCommand(c)
 		},
+	}
+}
+
+// manualFlagScan scans os.Args for flags that urfave/cli may have missed
+// when they appear after positional arguments.
+// e.g., "temp local tcp 2222 -x socks5://..." where -x is after positional args.
+func manualFlagScan(c *cli.Context) {
+	args := os.Args
+	flagMap := map[string]string{
+		"--proxy":    "proxy",
+		"-x":         "proxy",
+		"--protocol": "protocol",
+		"-p":         "protocol",
+	}
+	for i := 0; i < len(args)-1; i++ {
+		// Handle "--proxy value" and "-x value" format
+		if flagName, ok := flagMap[args[i]]; ok {
+			if c.String(flagName) == "" {
+				_ = c.Set(flagName, args[i+1])
+			}
+		}
+		// Handle "--proxy=value" format
+		for prefix, flagName := range flagMap {
+			if strings.HasPrefix(args[i], prefix+"=") {
+				val := strings.SplitN(args[i], "=", 2)[1]
+				if c.String(flagName) == "" {
+					_ = c.Set(flagName, val)
+				}
+			}
+		}
 	}
 }
