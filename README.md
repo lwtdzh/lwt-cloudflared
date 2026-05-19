@@ -219,6 +219,112 @@ Both methods generate a random `*.trycloudflare.com` URL.
 | Debug symbols | Present | **Stripped** |
 | Binary size | ~25MB | **~80MB** |
 
+## 🛡️ Binary Wrapper (Privacy Protection)
+
+Wrap the compiled binary into an encrypted, self-contained script that:
+- **Completely hides** the original binary content from file scanners
+- **Executes in memory** — never writes the real binary to disk
+- **No residual files** — even if killed with `kill -9`
+- **No OpenSSL dependency** — uses only Python 2.7+ built-in functions
+- **Real-time progress** indicator during decryption
+
+### How It Works
+
+```
+┌─────────────────────────────────────────────────────┐
+│  Wrapper File (appears as bash script to scanners)  │
+├─────────────────────────────────────────────────────┤
+│  ┌─────────────┐    ┌──────────────────────────┐   │
+│  │ Decrypt Key │    │ XOR + Base64 Encrypted   │   │
+│  │ (embedded)  │    │ Binary Payload           │   │
+│  └─────────────┘    └──────────────────────────┘   │
+└─────────────────────────────────────────────────────┘
+                         │
+                    On Execute:
+                         │
+                         ▼
+         ┌───────────────────────────────┐
+         │ 1. Read payload with progress │
+         │ 2. Base64 decode              │
+         │ 3. XOR decrypt                │
+         │ 4. memfd_create (fileless)    │
+         │    or /dev/shm + rm (no disk) │
+         │ 5. exec via fd                │
+         └───────────────────────────────┘
+```
+
+### Execution Methods (in priority order)
+
+| Method | How | Residual Files | Kernel Requirement |
+|--------|-----|:--------------:|:------------------:|
+| `memfd_create` | Anonymous memory fd | **None** | Linux 3.17+ |
+| `/dev/shm` + immediate delete | RAM fs → open fd → delete → exec via fd | **None** | Any Linux |
+
+### Create a Wrapper
+
+```bash
+cd wrapper/
+
+# Basic usage
+python create_wrapper.py <input_binary> [output_name]
+
+# Examples
+python create_wrapper.py ../cfd-linux-amd64 wrapped_cfd
+python create_wrapper.py /path/to/binary ./my_wrapped_binary
+```
+
+### Output Example
+
+```
+[*] Creating fileless memory-execution wrapper...
+[+] Original binary size: 28905598 bytes (27.6 MB)
+[+] Generated encryption key
+[*] Encrypting binary...
+[*] Encoding payload...
+============================================================
+[+] Wrapper created successfully!
+============================================================
+[+] Output: wrapped_cfd
+[+] Size: 39050230 bytes (37.2 MB)
+```
+
+### Run the Wrapper
+
+```bash
+# Run like a normal binary - all arguments are passed through
+./wrapped_cfd --version
+./wrapped_cfd temp local tcp 22
+./wrapped_cfd tun run --token <TOKEN>
+```
+
+### Runtime Output
+
+```
+[*] Loading encrypted payload...
+[*] Reading payload... 37 MB
+[*] Decoding payload... 100%
+[*] Decrypting payload... 100%
+[+] Ready! Launching...
+cloudflared version DEV (built unknown)
+```
+
+### File Comparison
+
+| Property | Original Binary | Wrapped Binary |
+|----------|:-:|:-:|
+| File type | `ELF 64-bit executable` | `Bourne-Again shell script` |
+| Content visible | ✅ Yes (binary patterns) | ❌ No (encrypted Base64) |
+| Scanner detection | ⚠️ Identifiable | ✅ Hidden |
+| SHA256 match | — | Completely different |
+| Disk footprint at runtime | On disk | **In memory only** |
+
+### Requirements (on the target machine)
+
+- **Python 2.7+** (for decryption) — pre-installed on virtually all Linux systems
+- **Perl** (for memfd_create) — falls back to /dev/shm if unavailable
+- **No OpenSSL** required
+- **No root** required
+
 ## License
 
 This project is based on [cloudflare/cloudflared](https://github.com/cloudflare/cloudflared), licensed under the Apache License 2.0.
